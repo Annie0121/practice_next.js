@@ -1,0 +1,61 @@
+.form{
+    width:100%;
+    height:40px;
+    text-align:center;
+    margin-top:40px
+}
+
+.inputoption{
+    width:70px;
+    height:30px;
+    margin:5px;
+    font-size:15px;
+    font-weight:500
+}
+
+
+.inputamount{
+    width:100px;
+    height:25px;
+    margin:5px;
+    font-size:15px;
+    font-weight:500;
+}
+.inputdetail{
+    width:150px;
+    height:25px;
+    margin:5px;
+    font-size:15px;
+    font-weight:500;
+}
+.addbutton{
+    width:100px;
+    height:30px;
+    margin:5px;
+    font-size:15px;
+    font-weight:500;
+    cursor: pointer;
+}
+.amount{
+    width:100px;
+     height:25px;
+     margin:5px;
+     font-size:20px;
+     font-weight:500
+}
+.detail{
+    width:250px;
+    height:25px;
+    margin:5px;
+    font-size:20px;
+    font-weight:500;
+}
+.deletebutton{
+    width:50px;
+    height:30px;
+    margin:5px;
+    font-size:16px;
+    font-weight:500;
+    
+    
+}
