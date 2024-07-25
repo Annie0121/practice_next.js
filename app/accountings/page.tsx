@@ -53,7 +53,7 @@ export default function Accounting() {
       <div>
         <div className={styles.form}>{form({ type, setType, amount, setAmount, detail, setDetail, record, setRecord })}</div>
         <hr style={{width:"900px"}} ></hr>
-        <div>{list(record,setRecord)}</div>
+        <div><List record={record} setRecord={setRecord} /></div>
       </div>
     );
   }
@@ -94,7 +94,7 @@ export default function Accounting() {
     )
   }
 
-  function list(record:Record[],setRecord:React.Dispatch<React.SetStateAction<Record[]>>){
+  function List({ record, setRecord }: { record: Record[], setRecord: React.Dispatch<React.SetStateAction<Record[]>> }){
     console.log(record);
     const router = useRouter();
     //計算總數
