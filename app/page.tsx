@@ -1,25 +1,16 @@
 "use client";
-import Image from "next/image";
 import styles from "./page.module.css";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react'
-import firebase from "./firebase.js"
-import 'firebase/compat/auth';
+import { auth } from "./firebase.js";
+import { getAuth, createUserWithEmailAndPassword,signInWithEmailAndPassword ,onAuthStateChanged} from "firebase/auth";
 
 
 
 
 export default function Home() {
   //const rounter = useRouter();
-  
   return (
-    /*
-    <div >
-      <div className={styles.body}>
-        <button type={"button"} onClick={()=>rounter.push("/accountings")} className={styles.button} >點此開始</button>
-      </div>
-    </div> 
-    */
     <>
       <SignUp/> 
       <SignIn />
@@ -27,16 +18,6 @@ export default function Home() {
 
   );
 }
-
-
-
-function header(){
-  return(
-    <div className={styles.header}>React 練習專案</div>
-  )
-}
-
-
 function SignUp(){
 
   const[signUpemail,setsignUpEmail]=useState('')
@@ -44,13 +25,10 @@ function SignUp(){
   const[Message,setMessage]=useState('')
 
   const handleSignUp=()=>{
-    
-      firebase.auth().createUserWithEmailAndPassword(signUpemail,password).then((res)=>{
+      createUserWithEmailAndPassword(auth,signUpemail,password).then((res)=>{
           console.log(res);
           setsignUpEmail('');
-          setPassword('');  
-          
-          
+          setPassword('');         
       })
       .catch((error)=>{
         switch(error.code){
@@ -69,16 +47,11 @@ function SignUp(){
             case "auth/email-already-in-use":
               setMessage("信箱已註冊");
               break
-
         }
       setsignUpEmail('');
-      setPassword('');   
-        
-          
+      setPassword('');        
       })
   }
-  
-
   return(
     <div style={{margin:'40px auto',width:'250px',fontSize:'25px',fontWeight:600,textAlign:'center'}}>註冊帳號:
       
@@ -103,16 +76,11 @@ function SignUp(){
           onChange={(e)=>setPassword(e.target.value)}
         ></input>
       </div>
-     
       <button style={{width:'50px' }}  onClick={handleSignUp}>註冊</button>
       <div style={{color:"red"}}>{Message}</div>
     </div>
   )
 }
-
-
-
-
 
 function SignIn(){
   
@@ -120,14 +88,10 @@ function SignIn(){
   const[password,setPassword]=useState('')
   const [user, setUser] = useState<string | null>(null);
   const[errorMessage,setErrorMessage]=useState('')
-  const rounter = useRouter();
-
-
+  const router = useRouter();
   const handleSignIn =()=>{
-    
-    firebase.auth().signInWithEmailAndPassword(email,password)
+    signInWithEmailAndPassword(auth,email,password)
     .catch((error) => {
-      
       switch(error.code){
         case"auth/invalid-email" :
           setErrorMessage("信箱格式錯誤");
@@ -138,8 +102,6 @@ function SignIn(){
         case "auth/invalid-credential":
           setErrorMessage("信箱未註冊/密碼錯誤");
           break
-        
-
     }
     setEmail('');
     setPassword('');  
@@ -147,31 +109,34 @@ function SignIn(){
     }
 
     const handleSignout =()=>{
-      firebase.auth().signOut();
+      auth.signOut();
       setEmail('');
       setPassword('');
     }
 
     useEffect(()=>{
-      const unsubscribe = firebase.auth().onAuthStateChanged((currentUser) => {
+      const unsubscribe =onAuthStateChanged(auth,(currentUser) => {
         console.log(currentUser?.email);
         const userEmail = currentUser?.email || null;
         setUser(userEmail);
         //setUserEmail(currentUser?.email);
       });
       return () => unsubscribe();
-    }, []);
+    }, []);   
+    /*onAuthStateChanged(auth,(currentUser)=>{
+      console.log(currentUser?.email);
+      setUser(currentUser)
+    })*/
 
 
-    
-    
+
+
   return(
     <>
-     
       {user?(
         <div style={{marginTop:'40px',textAlign:'center'}}>
           <div>您已使用 {user} 登入</div>
-          <button onClick={()=>rounter.push("/accountings")}>開始</button>
+          <button onClick={()=>router.push("/accountings")}>開始</button>
           <button style={{marginTop:'10PX'}} onClick={handleSignout}>登出</button>
         </div>):(
           <div style={{margin:'40px auto',width:'250px',fontSize:'25px',fontWeight:600,textAlign:'center'}}>登入帳號:
@@ -186,7 +151,6 @@ function SignIn(){
               >
               </input>
             </div>
-           
             <div style={{display:'flex',marginTop:'10PX'}}>
               <div style={{width:'50px',fontSize:'16px',fontWeight:'500'}}>密碼：</div>
               <input
@@ -197,17 +161,12 @@ function SignIn(){
                   onChange={(e)=>setPassword(e.target.value)}
               ></input>
             </div>
-            
             <button style={{width:'50px' }} onClick={handleSignIn} >登入</button>
             <div style={{color:'red'}}>{errorMessage}</div>
           </div>
         )
       }
-        
-      
-
-    </>
-   
+    </>  
   )
 }
 

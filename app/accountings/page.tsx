@@ -1,14 +1,19 @@
-// app/accounting/page.tsx
 "use client"
 import styles from "./accountings.module.css";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
+import { auth ,db} from "../firebase.js";
+import { doc, setDoc,collection, addDoc,getDoc, onSnapshot , query, where,getDocs,deleteDoc } from "firebase/firestore"; 
+import {onAuthStateChanged, User} from "firebase/auth"
+
 
 
 interface Record{
+  id:string,
   type: string, 
   amount: string, 
-  detail: string 
+  detail: string ,
+  userid: string
 }
 
 interface Datatype{
@@ -22,35 +27,92 @@ interface Datatype{
   setRecord:React.Dispatch<React.SetStateAction<Record[]>>
 }
 
-
-
-
-
-function addRecord({ type, setType, amount, setAmount, detail, setDetail, record, setRecord }: Datatype){
-    const newRecord={type,amount,detail}
-    setRecord([...record, newRecord]);
-    setType('income');
+function  addRecord({ type, setType, amount, setAmount, detail, setDetail, record, setRecord }: Datatype){
+    const user = auth.currentUser;
+    const userid = user?.uid
+    addDoc(collection(db, "record"), {
+      type,
+      amount,
+      detail,
+      userid
+    });
+    //清空輸入框
     setAmount("");
     setDetail('');
-    console.log();
-    
+    setType('income')
 }
 
 
 
 export default function Accounting() {
+    //設定路由
+    const router = useRouter();
     //設定useState接收表單狀態
     const [type,setType]=useState('income');
     const [amount,setAmount]=useState("");
     const [detail,setDetail]=useState("");
+    const [user, setUser] = useState<User | null>(null);
+    const[userEmail,setUseremail]=useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     //將數據放進record中
     const [record,setRecord]=useState<Record[]>([]); //<Record[]>狀態變數的型別是 Record []，([])初始值為空數組
 
-    
-   
+    //確認用戶狀態
+    useEffect(()=>{
+      const unsubscribe = onAuthStateChanged(auth,(currentUser) => {
+        if(currentUser){
+          setUser(currentUser);
+          setUseremail(currentUser.email)
+          fetchUserData(currentUser.uid);
+          console.log(currentUser.uid); 
+          console.log(currentUser.email);
+          setLoading(false);
+        }else{
+          router.push("/")
+        }
+        
+      });
+      
+      const fetchUserData = async(userId: string) => {
+          console.log(userId);
+          const q = query(collection(db, "record"), where("userid", "==", userId));
+          try {
+            //抓取數據
+            const querySnapshot = await getDocs(q);
+            const userRecords: Record[] = [];
+            querySnapshot.forEach((doc) => {
+              //加入doc.id，後續刪除抓id
+              userRecords.push({ ...doc.data(), id: doc.id }as Record);
+            });
+            setRecord(userRecords);
+           
+            //更新觸發
+            onSnapshot(q, (snapshot) => {
+              const updatedRecords: Record[] = [];
+              snapshot.forEach((doc) => {
+                  updatedRecords.push({ ...doc.data(), id: doc.id }as Record);
+              });
+              setRecord(updatedRecords);
+              
+          });
+           
+          } catch (error) {
+            console.error( error);
+          }
+          
+        }
+
+      return () => unsubscribe();
+       }, []);  
+
+       if (loading) {
+        return <div>Loading...</div>; 
+      }
+
     return (
       <div>
+        <div style={{marginTop:'40px',textAlign:'center'}}>您已使用{userEmail}登入</div>
         <div className={styles.form}>{form({ type, setType, amount, setAmount, detail, setDetail, record, setRecord })}</div>
         <hr style={{width:"900px"}} ></hr>
         <div><List record={record} setRecord={setRecord} /></div>
@@ -58,9 +120,10 @@ export default function Accounting() {
     );
   }
   
-
+  
   function form({ type, setType, amount, setAmount, detail, setDetail, record, setRecord }: Datatype){
-    
+   
+
     return(
         <>
             <select className={styles.inputoption} value={type} onChange={(e)=>setType(e.target.value)}>
@@ -95,29 +158,36 @@ export default function Accounting() {
   }
 
   function List({ record, setRecord }: { record: Record[], setRecord: React.Dispatch<React.SetStateAction<Record[]>> }){
-    console.log(record);
+    const [loading, setLoading] = useState(true);
     const router = useRouter();
+    
     //計算總數
     const total =record.reduce((acc,res)=>(
        res.type === "expense" ? acc- parseFloat(res.amount): acc + parseFloat(res.amount)
     ),0)
 
-    const handleDel=(index:number)=>{
-      setRecord(record.filter((item,idx)=>idx !==index));
+    const handleDel= (id:string)=>{
+      console.log(id);
+      try {
+        deleteDoc(doc(db, "record", id));
+        setRecord(record.filter((item) => item.id !== id));
+      } catch (error) {
+        console.error("刪除文件時出錯: ", error);
+      }
       
     }
 
     return(
         <div style={{width:"450px", margin:"40px auto"}}>
-          {record.map((re,index)=>(
-            <div key={index} style={{display:"flex"}}>
+          {record.map((re)=>(
+            <div key={re.id} style={{display:"flex"}}>
               <div className={styles.amount}
                    style={{ color: re.type === "expense" ? "red" : "green" }}>
                   {re.type === "expense" ? `-${re.amount}` : re.amount}
               </div>
 
               <div className={styles.detail}>{re.detail}</div>
-              <button className={styles.deletebutton} onClick={()=>handleDel(index)}>刪除</button>
+              <button className={styles.deletebutton} onClick={()=>handleDel(re.id)}>刪除</button>
             </div>
           ))}
           <div style={{textAlign:"center",marginTop:'30px',fontSize:'18px',fontWeight:'550'}}>小記：{total}</div>
